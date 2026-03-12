@@ -194,12 +194,16 @@ Logger et klik i `raw_clicks`. Kaldes fra serve-ad-script via et usynligt Image-
 ### `serve-ad-script`
 **URL:** `GET /functions/v1/serve-ad-script`
 **Auth:** Ingen (verify_jwt: false)
+**Cache:** 5 minutter (`Cache-Control: public, max-age=300`)
+**Kildekode:** Deployed som Supabase edge function (ikke en fil i repoet)
 
-Returnerer et JavaScript-snippet, som annoncør-websites inkluderer. Scriptet:
-1. Finder alle `<ins class="bh-banner">` elementer
-2. Henter annoncer via `serve-ad`
-3. Renderer banner HTML
-4. Tilføjer click event listeners der kalder `track-click`
+Returnerer et dynamisk genereret JavaScript-snippet. JS'en genereres on-the-fly i edge functionen fordi den injecter Supabase URL'en (`SUPABASE_URL` env var) som API-base i det udleverede script.
+
+**Hvad scriptet gør på annoncør-websitet:**
+1. Finder alle `<ins class="bh-banner">` elementer på siden
+2. Laver et `fetch()` kald til `serve-ad` per element (med placement + device fra data-attributter)
+3. Renderer banner HTML (billede-link, tekst-link, eller fallback med kundenavn)
+4. Tilføjer click event listeners der kalder `track-click` via usynligt Image-request
 
 **Sådan integreres det på et website:**
 ```html
