@@ -17,11 +17,13 @@ Annoncør-website
     │
     ├─ <script src=".../serve-ad-script">   ← indlæser JS-snippet
     │         │
-    │         └─ fetch(".../serve-ad?placement=&device=")   ← henter annonce
-    │                   │
-    │                   ├─ læser: campaigns, campaign_placements, campaign_creatives
-    │                   ├─ læser: daily_stats + raw_impressions (pacing)
-    │                   └─ skriver: raw_impressions (impression tracking)
+    │         ├─ fetch(".../serve-ad?placement=&device=")   ← henter annonce
+    │         │         │
+    │         │         ├─ læser: serving_config (1 query, pre-beregnet)
+    │         │         └─ skriver: raw_impressions (1 insert)
+    │         │
+    │         └─ onClick → GET .../track-click?campaign_id=&placement=&device=
+    │                   └─ skriver: raw_clicks (1 insert)
     │
 Admin UI (index.html)
     └─ Supabase JS SDK → direkte til database
@@ -29,7 +31,9 @@ Admin UI (index.html)
 pg_cron (hvert 15. min)
     └─ HTTP POST → aggregate-stats
               ├─ aggregerer raw_impressions → daily_stats
+              ├─ aggregerer raw_clicks → daily_clicks
               ├─ opdaterer campaign_placements.used
+              ├─ pre-beregner serving_config (pacing-vægte)
               └─ opdaterer campaign statuser automatisk
 ```
 
@@ -72,6 +76,18 @@ Selve annoncematerialet — én række per placement/device-kombination.
 | `body_text` | text | Brødtekst |
 | `click_url` | text | Klik-destination |
 
+### `serving_config`
+Pre-beregnede pacing-vægte og creative data. Genberegnes hvert 15. minut af aggregate-stats. Bruges af serve-ad til hurtig opslag (1 query i stedet for 5).
+
+| Kolonne | Type | Beskrivelse |
+|---|---|---|
+| `id` | uuid | Primærnøgle |
+| `placement` | text | `forside`, `srp`, `vip` |
+| `campaign_id` | uuid | FK → campaigns |
+| `weight` | float | Pre-beregnet pacing-vægt (0 = foran plan) |
+| `creative` | jsonb | `{customer, device, image_url, headline, body_text, click_url}` |
+| `updated_at` | timestamptz | Hvornår rækken sidst blev beregnet |
+
 ### `raw_impressions`
 Hvert enkelt visning logges her i realtid.
 
@@ -83,8 +99,19 @@ Hvert enkelt visning logges her i realtid.
 | `device` | text | |
 | `recorded_at` | timestamptz | Tidsstempel (default: now()) |
 
+### `raw_clicks`
+Hvert enkelt klik logges her i realtid.
+
+| Kolonne | Type | Beskrivelse |
+|---|---|---|
+| `id` | bigint | Auto-increment (bruges som cursor) |
+| `campaign_id` | uuid | FK → campaigns |
+| `placement` | text | |
+| `device` | text | |
+| `recorded_at` | timestamptz | Tidsstempel (default: now()) |
+
 ### `daily_stats`
-Aggregerede impressions per kampagne/placement/dag. Bruges til pacing.
+Aggregerede impressions per kampagne/placement/dag.
 
 | Kolonne | Type | Beskrivelse |
 |---|---|---|
@@ -93,12 +120,23 @@ Aggregerede impressions per kampagne/placement/dag. Bruges til pacing.
 | `stat_date` | date | |
 | `impression_count` | integer | Antal impressions denne dag |
 
+### `daily_clicks`
+Aggregerede klik per kampagne/placement/dag.
+
+| Kolonne | Type | Beskrivelse |
+|---|---|---|
+| `campaign_id` | uuid | FK → campaigns |
+| `placement` | text | |
+| `stat_date` | date | |
+| `click_count` | integer | Antal klik denne dag |
+
 ### `aggregation_cursor`
-Holder styr på, hvilke `raw_impressions` der er behandlet. Én række (id=1).
+Holder styr på, hvilke `raw_impressions` og `raw_clicks` der er behandlet. Én række (id=1).
 
 | Kolonne | Type | Beskrivelse |
 |---|---|---|
 | `last_processed_id` | bigint | Højeste raw_impressions.id der er aggregeret |
+| `last_processed_click_id` | bigint | Højeste raw_clicks.id der er aggregeret |
 | `last_run_at` | timestamptz | Hvornår aggregate-stats sidst kørte |
 
 ---
@@ -108,18 +146,16 @@ Holder styr på, hvilke `raw_impressions` der er behandlet. Én række (id=1).
 ### `serve-ad`
 **URL:** `GET /functions/v1/serve-ad?placement=<p>&device=<d>`
 **Auth:** Ingen (verify_jwt: false)
+**Queries:** 1 read + 1 write (optimeret fra 5 queries)
 
-Leverer en annonce til et givent placement. Implementerer et **pacing-algoritme** der sikrer jævn fordeling af impressions over måneden.
+Leverer en annonce baseret på pre-beregnede pacing-vægte fra `serving_config`.
 
 **Algoritme:**
-1. Find aktive kampagner med budget for det ønskede placement
-2. Hent aggregerede impressions (`daily_stats`) + ikke-aggregerede (`raw_impressions` siden cursor)
-3. Beregn forventet levering: `budget × (daysElapsed / totalDays)`
-4. `deficit = forventet − leveret` — positivt = bagud i pacing
-5. Kampagner med `deficit > 0` er valgbare
-6. **SRP:** Returner *alle* valgbare kampagner (multi-format)
-7. **Forside/VIP:** Vælg én kampagne via vægtet tilfældig (større deficit = højere chance)
-8. Log impression i `raw_impressions`
+1. `SELECT` fra `serving_config` WHERE placement = X (1 query, indekseret)
+2. Filtrer på device i hukommelsen
+3. **SRP:** Returner *alle* valgbare kampagner (multi-format)
+4. **Forside/VIP:** Vælg én kampagne via vægtet tilfældig (større weight = højere chance)
+5. `INSERT` impression i `raw_impressions`
 
 **Svar (single):**
 ```json
@@ -146,11 +182,24 @@ Leverer en annonce til et givent placement. Implementerer et **pacing-algoritme*
 
 ---
 
+### `track-click`
+**URL:** `GET /functions/v1/track-click?campaign_id=<id>&placement=<p>&device=<d>`
+**Auth:** Ingen (verify_jwt: false)
+**Svar:** 204 No Content
+
+Logger et klik i `raw_clicks`. Kaldes fra serve-ad-script via et usynligt Image-request når brugeren klikker på et banner.
+
+---
+
 ### `serve-ad-script`
 **URL:** `GET /functions/v1/serve-ad-script`
 **Auth:** Ingen (verify_jwt: false)
 
-Returnerer et JavaScript-snippet, som annoncør-websites inkluderer. Scriptet finder alle `<ins class="bh-banner">` elementer og fylder dem med annoncer via `serve-ad`.
+Returnerer et JavaScript-snippet, som annoncør-websites inkluderer. Scriptet:
+1. Finder alle `<ins class="bh-banner">` elementer
+2. Henter annoncer via `serve-ad`
+3. Renderer banner HTML
+4. Tilføjer click event listeners der kalder `track-click`
 
 **Sådan integreres det på et website:**
 ```html
@@ -171,24 +220,27 @@ Returnerer et JavaScript-snippet, som annoncør-websites inkluderer. Scriptet fi
 **Auth:** Ingen (verify_jwt: false)
 **Kaldes af:** pg_cron hvert 15. minut
 
-Behandler op til 10.000 nye `raw_impressions` og aggregerer dem ind i `daily_stats`.
+Behandler op til 10.000 nye `raw_impressions` og `raw_clicks`, og pre-beregner serving config.
 
 **Trin:**
-1. Læs `aggregation_cursor.last_processed_id`
-2. Hent alle `raw_impressions` med `id > last_processed_id`
-3. Grupper efter `campaign_id + placement + dato`
-4. Upsert ind i `daily_stats` (opdater eksisterende rækker eller opret nye)
-5. Rykke cursor frem til højeste behandlede id
-6. Genberegn `campaign_placements.used` for alle aktive/schedulede kampagner (indeværende måned)
-7. Auto-opdater kampagnestatuser:
+1. Læs `aggregation_cursor` (last_processed_id + last_processed_click_id)
+2. Hent og aggreger `raw_impressions` → `daily_stats`
+3. Hent og aggreger `raw_clicks` → `daily_clicks`
+4. Ryk cursors frem
+5. Genberegn `campaign_placements.used` for indeværende måned
+6. Auto-opdater kampagnestatuser:
    - `scheduled` → `active` hvis `start_date <= i dag <= end_date`
    - `active` → `ended` hvis `end_date < i dag`
+7. Pre-beregn `serving_config`:
+   - Beregn pacing-vægte for alle aktive kampagner per placement
+   - Gem creative data som jsonb
+   - Atomisk replace (delete + insert)
 
 ---
 
 ## Automatisk kørsel (pg_cron)
 
-`aggregate-stats` er sat op til at køre automatisk hvert 15. minut via pg_cron:
+`aggregate-stats` er sat op til at køre automatisk hvert 15. minut via pg_cron + pg_net:
 
 ```sql
 -- Job navn: aggregate-stats-every-15min
@@ -222,23 +274,28 @@ Mørk-temaet single-page app der kommunikerer direkte med Supabase via JS SDK.
 ```
 1. Besøgende ser annonce på bilhandel.dk
         ↓
-2. serve-ad logger → raw_impressions (id: 42, campaign_id: X, placement: forside)
+2. serve-ad læser serving_config → returnerer annonce
+   serve-ad logger → raw_impressions
         ↓
-3. Hvert 15. min kører aggregate-stats:
-   - Behandler raw_impressions id > last_cursor
-   - Lægger til daily_stats (campaign X, forside, dato: 2026-03-12, count++)
-   - Opdaterer aggregation_cursor.last_processed_id = 42
-   - Opdaterer campaign_placements.used
+3. Besøgende klikker på annonce
+   serve-ad-script kalder → track-click → raw_clicks
         ↓
-4. Næste gang serve-ad kører:
-   - Læser daily_stats for leverede impressions
-   - Læser raw_impressions > cursor for ikke-aggregerede
-   - Beregner pacing og beslutter om kampagnen skal serveres
+4. Hvert 15. min kører aggregate-stats:
+   - raw_impressions → daily_stats
+   - raw_clicks → daily_clicks
+   - Genberegner campaign_placements.used
+   - Pre-beregner serving_config (pacing-vægte)
+        ↓
+5. Næste gang serve-ad kører:
+   - Læser serving_config (1 query)
+   - Pacing allerede beregnet — vælger kampagne direkte
 ```
 
 ---
 
 ## Pacing-formel
+
+Beregnes i `aggregate-stats` og gemmes i `serving_config.weight`:
 
 ```
 periodStart   = max(campaign.start_date, første dag i måneden)
@@ -253,3 +310,15 @@ weight        = max(0, deficit)
   → 0 = kampagnen er foran plan, serveres ikke
   → positiv = kampagnen er bagud, vægtet sandsynlighed for at blive valgt
 ```
+
+---
+
+## Performance
+
+Systemet er optimeret til 5M+ sidevisninger/måned:
+
+| Metric | Før | Efter |
+|---|---|---|
+| DB queries per serve-ad | 5 (campaigns join + daily_stats + cursor + raw_impressions scan + insert) | 2 (serving_config read + raw_impressions insert) |
+| Pacing-beregning | Realtime per request | Pre-beregnet hvert 15. min |
+| Pacing-præcision | Real-time | 15 min forsinkelse (acceptabelt for bannerannoncer) |
