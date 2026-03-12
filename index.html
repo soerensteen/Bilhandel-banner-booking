@@ -1,0 +1,1678 @@
+<!DOCTYPE html>
+<html lang="da">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Banner Administration</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #0a0c10;
+        --surface: #12151c;
+        --surface-2: #1a1e28;
+        --surface-3: #222838;
+        --border: #2a3040;
+        --border-hover: #3a4560;
+        --text: #e8ecf4;
+        --text-muted: #8892a8;
+        --text-dim: #5a6478;
+        --accent: #4f8cff;
+        --accent-hover: #6ba0ff;
+        --accent-dim: rgba(79, 140, 255, 0.12);
+        --green: #34d399;
+        --green-dim: rgba(52, 211, 153, 0.12);
+        --amber: #fbbf24;
+        --amber-dim: rgba(251, 191, 36, 0.12);
+        --red: #f87171;
+        --red-dim: rgba(248, 113, 113, 0.12);
+        --purple: #a78bfa;
+        --purple-dim: rgba(167, 139, 250, 0.12);
+        --radius: 10px;
+        --radius-sm: 6px;
+        --shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        --transition: 180ms ease;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: 'DM Sans', sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+        line-height: 1.5;
+      }
+
+      /* Layout */
+      .app {
+        display: flex;
+        min-height: 100vh;
+      }
+
+      .sidebar {
+        width: 240px;
+        background: var(--surface);
+        border-right: 1px solid var(--border);
+        padding: 24px 16px;
+        display: flex;
+        flex-direction: column;
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        z-index: 100;
+        font-family: 'DM Sans', sans-serif;
+      }
+
+      .sidebar-logo {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--accent);
+        margin-bottom: 8px;
+        padding: 0 8px;
+        letter-spacing: -0.3px;
+      }
+
+      .sidebar-sub {
+        font-size: 11px;
+        color: var(--text-dim);
+        text-transform: uppercase;
+        letter-spacing: 1.2px;
+        padding: 0 8px;
+        margin-bottom: 32px;
+      }
+
+      .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        border-radius: var(--radius-sm);
+        color: var(--text-muted);
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        transition: all var(--transition);
+        border: none;
+        background: none;
+        width: 100%;
+        text-align: left;
+        font-family: 'DM Sans', sans-serif;
+      }
+
+      .nav-item:hover {
+        background: var(--surface-2);
+        color: var(--text);
+      }
+      .nav-item.active {
+        background: var(--accent-dim);
+        color: var(--accent);
+      }
+      .nav-item svg {
+        width: 18px;
+        height: 18px;
+        flex-shrink: 0;
+      }
+
+      .main {
+        flex: 1;
+        margin-left: 240px;
+        padding: 32px 40px;
+        max-width: 1200px;
+      }
+
+      /* Header */
+      .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 32px;
+      }
+
+      .page-title {
+        font-size: 26px;
+        font-weight: 700;
+        letter-spacing: -0.5px;
+      }
+
+      .page-title span {
+        color: var(--text-dim);
+        font-weight: 400;
+        margin-left: 8px;
+        font-size: 16px;
+      }
+
+      /* Buttons */
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 9px 18px;
+        border-radius: var(--radius-sm);
+        font-family: inherit;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all var(--transition);
+        border: 1px solid transparent;
+      }
+
+      .btn-primary {
+        background: var(--accent);
+        color: #fff;
+        border-color: var(--accent);
+      }
+      .btn-primary:hover {
+        background: var(--accent-hover);
+      }
+
+      .btn-ghost {
+        background: transparent;
+        color: var(--text-muted);
+        border-color: var(--border);
+      }
+      .btn-ghost:hover {
+        border-color: var(--border-hover);
+        color: var(--text);
+      }
+
+      .btn-danger {
+        background: var(--red-dim);
+        color: var(--red);
+        border-color: transparent;
+      }
+      .btn-danger:hover {
+        background: rgba(248, 113, 113, 0.2);
+      }
+
+      .btn-sm {
+        padding: 6px 12px;
+        font-size: 12px;
+      }
+
+      .btn svg {
+        width: 16px;
+        height: 16px;
+      }
+
+      /* Stats Row */
+      .stats-row {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+        margin-bottom: 32px;
+      }
+
+      .stat-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 20px;
+      }
+
+      .stat-label {
+        font-size: 12px;
+        color: var(--text-dim);
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        margin-bottom: 8px;
+      }
+
+      .stat-value {
+        font-size: 28px;
+        font-weight: 700;
+        font-family: 'JetBrains Mono', monospace;
+        letter-spacing: -1px;
+      }
+
+      .stat-value.green {
+        color: var(--green);
+      }
+      .stat-value.amber {
+        color: var(--amber);
+      }
+      .stat-value.accent {
+        color: var(--accent);
+      }
+      .stat-value.purple {
+        color: var(--purple);
+      }
+
+      .stat-detail {
+        font-size: 12px;
+        color: var(--text-dim);
+        margin-top: 4px;
+      }
+
+      /* Table */
+      .table-wrap {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        overflow: hidden;
+      }
+
+      .table-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .table-title {
+        font-size: 15px;
+        font-weight: 600;
+      }
+
+      .filter-row {
+        display: flex;
+        gap: 8px;
+      }
+
+      .filter-btn {
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 500;
+        border: 1px solid var(--border);
+        background: transparent;
+        color: var(--text-muted);
+        cursor: pointer;
+        transition: all var(--transition);
+        font-family: inherit;
+      }
+      .filter-btn:hover {
+        border-color: var(--border-hover);
+      }
+      .filter-btn.active {
+        background: var(--accent-dim);
+        color: var(--accent);
+        border-color: var(--accent);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      th {
+        text-align: left;
+        padding: 12px 20px;
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--text-dim);
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      td {
+        padding: 14px 20px;
+        font-size: 14px;
+        border-bottom: 1px solid var(--border);
+        vertical-align: middle;
+      }
+
+      tr:last-child td {
+        border-bottom: none;
+      }
+      tr:hover td {
+        background: var(--surface-2);
+      }
+
+      .customer-name {
+        font-weight: 600;
+        color: var(--text);
+      }
+
+      .customer-company {
+        font-size: 12px;
+        color: var(--text-dim);
+      }
+
+      /* Badges */
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 3px 10px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.3px;
+      }
+
+      .badge-active {
+        background: var(--green-dim);
+        color: var(--green);
+      }
+      .badge-scheduled {
+        background: var(--accent-dim);
+        color: var(--accent);
+      }
+      .badge-ended {
+        background: var(--surface-3);
+        color: var(--text-dim);
+      }
+      .badge-paused {
+        background: var(--amber-dim);
+        color: var(--amber);
+      }
+
+      .badge-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: currentColor;
+      }
+
+      /* Placement pills */
+      .placement-pills {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+
+      .placement-pill {
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-family: 'JetBrains Mono', monospace;
+        font-weight: 500;
+      }
+
+      .pill-forside {
+        background: var(--accent-dim);
+        color: var(--accent);
+      }
+      .pill-srp {
+        background: var(--purple-dim);
+        color: var(--purple);
+      }
+      .pill-vip {
+        background: var(--green-dim);
+        color: var(--green);
+      }
+
+      /* Progress bar */
+      .progress-wrap {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .progress-bar {
+        flex: 1;
+        height: 6px;
+        background: var(--surface-3);
+        border-radius: 3px;
+        overflow: hidden;
+      }
+
+      .progress-fill {
+        height: 100%;
+        border-radius: 3px;
+        transition: width 0.4s ease;
+      }
+
+      .progress-pct {
+        font-size: 12px;
+        font-family: 'JetBrains Mono', monospace;
+        font-weight: 500;
+        color: var(--text-muted);
+        min-width: 38px;
+        text-align: right;
+      }
+
+      /* Actions */
+      .actions-cell {
+        display: flex;
+        gap: 4px;
+      }
+      .action-btn {
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: var(--radius-sm);
+        border: none;
+        background: transparent;
+        color: var(--text-dim);
+        cursor: pointer;
+        transition: all var(--transition);
+      }
+      .action-btn:hover {
+        background: var(--surface-3);
+        color: var(--text);
+      }
+      .action-btn svg {
+        width: 16px;
+        height: 16px;
+      }
+
+      /* Modal */
+      .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(4px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 200ms ease;
+      }
+
+      .modal-overlay.open {
+        opacity: 1;
+        pointer-events: all;
+      }
+
+      .modal {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        width: 600px;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        transform: translateY(10px);
+        transition: transform 200ms ease;
+      }
+
+      .modal-overlay.open .modal {
+        transform: translateY(0);
+      }
+
+      .modal-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px 24px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .modal-title {
+        font-size: 17px;
+        font-weight: 700;
+      }
+
+      .modal-close {
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: var(--radius-sm);
+        border: none;
+        background: transparent;
+        color: var(--text-dim);
+        cursor: pointer;
+        font-size: 18px;
+      }
+      .modal-close:hover {
+        background: var(--surface-3);
+        color: var(--text);
+      }
+
+      .modal-body {
+        padding: 24px;
+      }
+
+      .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+      }
+
+      .form-full {
+        grid-column: 1 / -1;
+      }
+
+      .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .form-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+      }
+
+      .form-input,
+      .form-select {
+        padding: 10px 14px;
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        color: var(--text);
+        font-family: inherit;
+        font-size: 14px;
+        transition: border-color var(--transition);
+      }
+
+      .form-input:focus,
+      .form-select:focus {
+        outline: none;
+        border-color: var(--accent);
+      }
+
+      .form-input::placeholder {
+        color: var(--text-dim);
+      }
+
+      .form-select {
+        cursor: pointer;
+      }
+      .form-select option {
+        background: var(--surface-2);
+      }
+
+      .form-hint {
+        font-size: 11px;
+        color: var(--text-dim);
+      }
+
+      /* Placement allocation section */
+      .allocation-section {
+        margin-top: 20px;
+        padding-top: 20px;
+        border-top: 1px solid var(--border);
+      }
+
+      .allocation-title {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        margin-bottom: 16px;
+      }
+
+      .allocation-row {
+        display: grid;
+        grid-template-columns: 100px 1fr 80px;
+        gap: 12px;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+
+      .alloc-label {
+        font-size: 13px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .alloc-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+      }
+
+      .dot-forside {
+        background: var(--accent);
+      }
+      .dot-srp {
+        background: var(--purple);
+      }
+      .dot-vip {
+        background: var(--green);
+      }
+
+      .alloc-input {
+        padding: 10px 14px;
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        color: var(--text);
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 14px;
+        text-align: right;
+      }
+
+      .alloc-input:focus {
+        outline: none;
+        border-color: var(--accent);
+      }
+
+      .alloc-unit {
+        font-size: 12px;
+        color: var(--text-dim);
+      }
+
+      .alloc-total {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 16px;
+        background: var(--surface-3);
+        border-radius: var(--radius-sm);
+        margin-top: 16px;
+      }
+
+      .alloc-total-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-muted);
+      }
+
+      .alloc-total-value {
+        font-size: 16px;
+        font-weight: 700;
+        font-family: 'JetBrains Mono', monospace;
+        color: var(--accent);
+      }
+
+      /* Banner upload area */
+      .upload-area {
+        margin-top: 20px;
+        padding-top: 20px;
+        border-top: 1px solid var(--border);
+      }
+
+      .upload-zone {
+        border: 2px dashed var(--border);
+        border-radius: var(--radius);
+        padding: 32px;
+        text-align: center;
+        cursor: pointer;
+        transition: all var(--transition);
+        margin-top: 12px;
+      }
+
+      .upload-zone:hover {
+        border-color: var(--accent);
+        background: var(--accent-dim);
+      }
+
+      .upload-zone svg {
+        width: 32px;
+        height: 32px;
+        color: var(--text-dim);
+        margin-bottom: 8px;
+      }
+      .upload-text {
+        font-size: 13px;
+        color: var(--text-muted);
+      }
+      .upload-hint {
+        font-size: 11px;
+        color: var(--text-dim);
+        margin-top: 4px;
+      }
+
+      .banner-preview {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-top: 12px;
+      }
+
+      .preview-thumb {
+        position: relative;
+        width: 120px;
+        height: 80px;
+        border-radius: var(--radius-sm);
+        overflow: hidden;
+        border: 1px solid var(--border);
+      }
+
+      .preview-thumb img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .preview-remove {
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        width: 20px;
+        height: 20px;
+        background: rgba(0, 0, 0, 0.7);
+        border: none;
+        color: #fff;
+        border-radius: 50%;
+        cursor: pointer;
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      /* Modal footer */
+      .modal-foot {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        padding: 16px 24px;
+        border-top: 1px solid var(--border);
+      }
+
+      /* Detail view */
+      .detail-back {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--text-muted);
+        font-size: 13px;
+        cursor: pointer;
+        margin-bottom: 20px;
+        background: none;
+        border: none;
+        font-family: inherit;
+        transition: color var(--transition);
+      }
+      .detail-back:hover {
+        color: var(--text);
+      }
+      .detail-back svg {
+        width: 16px;
+        height: 16px;
+      }
+
+      .detail-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 32px;
+      }
+
+      .detail-info h2 {
+        font-size: 24px;
+        font-weight: 700;
+        letter-spacing: -0.3px;
+      }
+
+      .detail-meta {
+        display: flex;
+        gap: 16px;
+        margin-top: 8px;
+        font-size: 13px;
+        color: var(--text-muted);
+      }
+
+      .detail-meta span {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+
+      .detail-placements {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        margin-bottom: 32px;
+      }
+
+      .detail-placement-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 20px;
+      }
+
+      .dpc-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+      }
+
+      .dpc-name {
+        font-size: 13px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .dpc-pct {
+        font-size: 20px;
+        font-weight: 700;
+        font-family: 'JetBrains Mono', monospace;
+      }
+
+      .dpc-bar {
+        width: 100%;
+        height: 8px;
+        background: var(--surface-3);
+        border-radius: 4px;
+        overflow: hidden;
+        margin-bottom: 12px;
+      }
+
+      .dpc-bar-fill {
+        height: 100%;
+        border-radius: 4px;
+        transition: width 0.5s ease;
+      }
+
+      .dpc-stats {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        color: var(--text-dim);
+      }
+
+      .dpc-stats strong {
+        color: var(--text-muted);
+        font-family: 'JetBrains Mono', monospace;
+      }
+
+      /* Daily log */
+      .log-section {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        overflow: hidden;
+      }
+
+      .log-header {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border);
+        font-size: 15px;
+        font-weight: 600;
+      }
+
+      .log-table {
+        width: 100%;
+      }
+      .log-table th {
+        font-size: 11px;
+      }
+      .log-table td {
+        font-size: 13px;
+        font-family: 'JetBrains Mono', monospace;
+      }
+
+      /* Empty state */
+      .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--text-dim);
+      }
+
+      .empty-state svg {
+        width: 48px;
+        height: 48px;
+        margin-bottom: 16px;
+        opacity: 0.4;
+      }
+      .empty-state p {
+        font-size: 14px;
+        margin-bottom: 16px;
+      }
+
+      /* Responsive */
+      @media (max-width: 900px) {
+        .sidebar {
+          display: none;
+        }
+        .main {
+          margin-left: 0;
+          padding: 20px;
+        }
+        .stats-row {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .detail-placements {
+          grid-template-columns: 1fr;
+        }
+        .modal {
+          width: 95vw;
+        }
+        .form-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      /* Scrollbar */
+      ::-webkit-scrollbar {
+        width: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: var(--surface-3);
+        border-radius: 3px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: var(--border);
+      }
+
+      /* Animations */
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+      .animate-in {
+        animation: fadeIn 0.3s ease;
+      }
+
+      /* Toast */
+      .toast {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        padding: 12px 20px;
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        font-size: 13px;
+        color: var(--text);
+        box-shadow: var(--shadow);
+        transform: translateY(100px);
+        opacity: 0;
+        transition: all 300ms ease;
+        z-index: 2000;
+      }
+      .toast.show {
+        transform: translateY(0);
+        opacity: 1;
+      }
+      .toast.success {
+        border-color: var(--green);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <!-- Sidebar -->
+      <nav class="sidebar">
+        <div class="sidebar-logo">Bilhandel</div>
+        <div class="sidebar-sub">Banner Admin</div>
+        <button class="nav-item active" data-view="campaigns" onclick="switchView('campaigns')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="18" height="18" rx="2" />
+            <path d="M3 9h18M9 21V9" />
+          </svg>
+          Kampagner
+        </button>
+        <button class="nav-item" data-view="stats" onclick="switchView('stats')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 20V10M12 20V4M6 20v-6" />
+          </svg>
+          Statistik
+        </button>
+        <button class="nav-item" data-view="placements" onclick="switchView('placements')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="3" width="20" height="14" rx="2" />
+            <path d="M8 21h8M12 17v4" />
+          </svg>
+          Placeringer
+        </button>
+        <button class="nav-item" data-view="snippets" onclick="switchView('snippets')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="4" y="4" width="16" height="16" rx="2" />
+            <path d="M8 9h8M8 13h5M8 17h3" />
+          </svg>
+          Snippets
+        </button>
+      </nav>
+
+      <!-- Main content -->
+      <main class="main" id="mainContent"></main>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal-overlay" id="modalOverlay">
+      <div class="modal" id="modalContent"></div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script>
+      // ── Supabase setup ──
+      const SUPABASE_URL = 'https://mbqeozymspvyouozpipv.supabase.co'
+      const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1icWVvenltc3B2eW91b3pwaXB2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzMTgwNTAsImV4cCI6MjA4ODg5NDA1MH0.5_R_cxIXGSm2gxWWAmK0WWj-Pr6Y7qzVzIHbyJCSGtI'
+      const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
+
+      let campaigns = []
+      let currentView = 'campaigns'
+      let currentFilter = 'all'
+      let editingId = null
+
+      // ── Data loading ──
+      async function loadCampaigns() {
+        const { data, error } = await sb
+          .from('campaigns')
+          .select('*, campaign_placements(*), campaign_creatives(*)')
+          .order('created_at', { ascending: false })
+        if (error) { console.error(error); showToast('Fejl ved indlæsning'); return }
+        campaigns = (data || []).map(adaptCampaign)
+      }
+
+      function adaptCampaign(row) {
+        const placements = { forside: { budget: 0, used: 0 }, srp: { budget: 0, used: 0 }, vip: { budget: 0, used: 0 } }
+        for (const cp of (row.campaign_placements || [])) {
+          placements[cp.placement] = { budget: cp.budget, used: cp.used }
+        }
+        const creatives = {}
+        for (const cr of (row.campaign_creatives || [])) {
+          creatives[cr.placement + '_' + cr.device] = cr
+        }
+        return {
+          id: row.id,
+          customer: row.customer,
+          status: row.status,
+          startDate: row.start_date,
+          endDate: row.end_date,
+          notes: row.notes,
+          placements,
+          creatives,
+          dailyLog: [],
+        }
+      }
+
+      async function loadDailyLog(campaignId) {
+        const { data } = await sb
+          .from('daily_stats')
+          .select('*')
+          .eq('campaign_id', campaignId)
+          .order('stat_date', { ascending: false })
+          .limit(30)
+        if (!data || data.length === 0) return []
+        // Pivot: group by date, sum per placement
+        const byDate = {}
+        for (const row of data) {
+          if (!byDate[row.stat_date]) byDate[row.stat_date] = { date: row.stat_date, forside: 0, srp: 0, vip: 0 }
+          byDate[row.stat_date][row.placement] = row.impression_count
+        }
+        return Object.values(byDate).sort((a, b) => b.date.localeCompare(a.date))
+      }
+
+      // ── Helpers ──
+      function fmt(n) { return new Intl.NumberFormat('da-DK').format(n) }
+      function fmtK(n) {
+        if (n >= 1000000) return (n / 1000000).toFixed(1).replace('.0', '') + 'M'
+        if (n >= 1000) return Math.round(n / 1000) + 'k'
+        return n.toString()
+      }
+      function fmtDate(d) {
+        return new Date(d).toLocaleDateString('da-DK', { day: 'numeric', month: 'short', year: 'numeric' })
+      }
+      function daysLeft(end) {
+        const diff = Math.ceil((new Date(end) - new Date()) / 86400000)
+        return diff > 0 ? diff : 0
+      }
+      function totalBudget(c) { return Object.values(c.placements).reduce((s, p) => s + p.budget, 0) }
+      function totalUsed(c) { return Object.values(c.placements).reduce((s, p) => s + p.used, 0) }
+      function pctUsed(c) {
+        const b = totalBudget(c)
+        return b > 0 ? Math.round((totalUsed(c) / b) * 100) : 0
+      }
+      // Pacing: calculate expected vs actual for current period (month)
+      function calcPacing(c) {
+        const today = new Date().toISOString().split('T')[0]
+        const monthStart = today.substring(0, 7) + '-01'
+        const d = new Date(today); const monthEnd = new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().split('T')[0]
+        let totalExpected = 0, totalDelivered = 0
+        const perPlacement = {}
+        for (const [key, p] of Object.entries(c.placements)) {
+          if (p.budget <= 0) continue
+          const pStart = c.startDate > monthStart ? c.startDate : monthStart
+          const pEnd = c.endDate < monthEnd ? c.endDate : monthEnd
+          const totalDays = Math.round((new Date(pEnd) - new Date(pStart)) / 86400000) + 1
+          const elapsed = Math.round((new Date(today) - new Date(pStart)) / 86400000) + 1
+          if (totalDays <= 0 || elapsed <= 0) { perPlacement[key] = { expected: 0, delivered: p.used, deficit: -p.used, pct: 0 }; continue }
+          const expected = p.budget * (elapsed / totalDays)
+          const deficit = expected - p.used
+          totalExpected += expected
+          totalDelivered += p.used
+          perPlacement[key] = { expected: Math.round(expected), delivered: p.used, deficit: Math.round(deficit), pct: expected > 0 ? Math.round((p.used / expected) * 100) : 0 }
+        }
+        const overallPct = totalExpected > 0 ? Math.round((totalDelivered / totalExpected) * 100) : 0
+        return { totalExpected: Math.round(totalExpected), totalDelivered, overallPct, perPlacement }
+      }
+      function pacingBadge(deficit) {
+        if (deficit > 0) return `<span class="badge badge-paused" style="background:var(--red-dim);color:var(--red)"><span class="badge-dot" style="background:var(--red)"></span>Bagud</span>`
+        if (deficit < -10) return `<span class="badge badge-active"><span class="badge-dot"></span>Foran</span>`
+        return `<span class="badge badge-scheduled"><span class="badge-dot"></span>On track</span>`
+      }
+      function statusBadge(s) {
+        const map = { active: 'badge-active', scheduled: 'badge-scheduled', ended: 'badge-ended', paused: 'badge-paused' }
+        const labels = { active: 'Aktiv', scheduled: 'Planlagt', ended: 'Afsluttet', paused: 'Pauset' }
+        return `<span class="badge ${map[s]}"><span class="badge-dot"></span>${labels[s]}</span>`
+      }
+      function progressColor(pct) {
+        if (pct >= 90) return 'var(--red)'
+        if (pct >= 70) return 'var(--amber)'
+        return 'var(--green)'
+      }
+      function showToast(msg, type = '') {
+        const t = document.getElementById('toast')
+        t.textContent = msg
+        t.className = 'toast show' + (type ? ' ' + type : '')
+        setTimeout(() => (t.className = 'toast'), 3000)
+      }
+
+      // ── Navigation ──
+      function switchView(view) {
+        currentView = view
+        document.querySelectorAll('.nav-item').forEach((n) => n.classList.toggle('active', n.dataset.view === view))
+        render()
+      }
+
+      async function render() {
+        const main = document.getElementById('mainContent')
+        switch (currentView) {
+          case 'campaigns': main.innerHTML = renderCampaigns(); break
+          case 'stats': main.innerHTML = renderStats(); break
+          case 'placements': main.innerHTML = renderPlacements(); break
+          case 'snippets': main.innerHTML = renderSnippets(); break
+          case 'detail': await renderDetailAsync(main); break
+        }
+      }
+
+      // ── Campaigns view ──
+      function renderCampaigns() {
+        const active = campaigns.filter((c) => c.status === 'active').length
+        const totalBudgetAll = campaigns.reduce((s, c) => s + totalBudget(c), 0)
+        const totalUsedAll = campaigns.reduce((s, c) => s + totalUsed(c), 0)
+        const avgPct = campaigns.length ? Math.round(campaigns.reduce((s, c) => s + pctUsed(c), 0) / campaigns.length) : 0
+        const filtered = currentFilter === 'all' ? campaigns : campaigns.filter((c) => c.status === currentFilter)
+
+        return `
+      <div class="page-header animate-in">
+        <h1 class="page-title">Kampagner <span>${campaigns.length} total</span></h1>
+        <button class="btn btn-primary" onclick="openNewCampaign()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+          Ny kampagne
+        </button>
+      </div>
+      <div class="stats-row animate-in">
+        <div class="stat-card">
+          <div class="stat-label">Aktive kampagner</div>
+          <div class="stat-value green">${active}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Samlet budget/md</div>
+          <div class="stat-value accent">${fmtK(totalBudgetAll)}</div>
+          <div class="stat-detail">visninger pr. måned</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Leveret denne md.</div>
+          <div class="stat-value amber">${fmtK(totalUsedAll)}</div>
+          <div class="stat-detail">${totalBudgetAll > 0 ? Math.round((totalUsedAll / totalBudgetAll) * 100) : 0}% af budget</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Gns. pacing</div>
+          <div class="stat-value purple">${campaigns.filter(c => c.status === 'active').length > 0 ? Math.round(campaigns.filter(c => c.status === 'active').reduce((s, c) => s + calcPacing(c).overallPct, 0) / campaigns.filter(c => c.status === 'active').length) : 0}%</div>
+          <div class="stat-detail">af forventet</div>
+        </div>
+      </div>
+      <div class="table-wrap animate-in">
+        <div class="table-header">
+          <span class="table-title">Alle kampagner</span>
+          <div class="filter-row">
+            <button class="filter-btn ${currentFilter === 'all' ? 'active' : ''}" onclick="setFilter('all')">Alle</button>
+            <button class="filter-btn ${currentFilter === 'active' ? 'active' : ''}" onclick="setFilter('active')">Aktive</button>
+            <button class="filter-btn ${currentFilter === 'scheduled' ? 'active' : ''}" onclick="setFilter('scheduled')">Planlagte</button>
+            <button class="filter-btn ${currentFilter === 'ended' ? 'active' : ''}" onclick="setFilter('ended')">Afsluttede</button>
+          </div>
+        </div>
+        <table>
+          <thead><tr><th>Kunde</th><th>Status</th><th>Periode</th><th>Placeringer</th><th>Levering</th><th></th></tr></thead>
+          <tbody>
+            ${filtered.map((c) => renderCampaignRow(c)).join('')}
+            ${filtered.length === 0 ? '<tr><td colspan="6" style="text-align:center;color:var(--text-dim);padding:40px;">Ingen kampagner fundet</td></tr>' : ''}
+          </tbody>
+        </table>
+      </div>`
+      }
+
+      function renderCampaignRow(c) {
+        const pacing = calcPacing(c)
+        const pct = pctUsed(c)
+        const pills = []
+        if (c.placements.forside.budget > 0) pills.push(`<span class="placement-pill pill-forside">Forside ${fmtK(c.placements.forside.budget)}</span>`)
+        if (c.placements.srp.budget > 0) pills.push(`<span class="placement-pill pill-srp">SRP ${fmtK(c.placements.srp.budget)}</span>`)
+        if (c.placements.vip.budget > 0) pills.push(`<span class="placement-pill pill-vip">VIP ${fmtK(c.placements.vip.budget)}</span>`)
+        const pacingColor = pacing.overallPct >= 90 ? 'var(--green)' : pacing.overallPct >= 70 ? 'var(--amber)' : 'var(--red)'
+        return `
+      <tr style="cursor:pointer" onclick="viewDetail('${c.id}')">
+        <td><div class="customer-name">${c.customer}</div><div class="customer-company">${fmtK(totalBudget(c))} visn./md</div></td>
+        <td>${statusBadge(c.status)}</td>
+        <td><div style="font-size:13px">${fmtDate(c.startDate)} – ${fmtDate(c.endDate)}</div><div style="font-size:11px;color:var(--text-dim)">${c.status === 'active' ? daysLeft(c.endDate) + ' dage tilbage' : ''}</div></td>
+        <td><div class="placement-pills">${pills.join('')}</div></td>
+        <td>${c.status === 'active' ? `<div style="display:flex;align-items:center;gap:8px"><div class="progress-wrap"><div class="progress-bar"><div class="progress-fill" style="width:${Math.min(pacing.overallPct, 100)}%;background:${pacingColor}"></div></div><span class="progress-pct">${pacing.overallPct}%</span></div></div>` : `<div class="progress-wrap"><div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${progressColor(pct)}"></div></div><span class="progress-pct">${pct}%</span></div>`}</td>
+        <td><div class="actions-cell" onclick="event.stopPropagation()">
+          <button class="action-btn" title="Rediger" onclick="openEditCampaign('${c.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+          <button class="action-btn" title="Slet" onclick="deleteCampaign('${c.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+        </div></td>
+      </tr>`
+      }
+
+      function setFilter(f) { currentFilter = f; render() }
+
+      function viewDetail(id) { editingId = id; currentView = 'detail'; render() }
+
+      // ── Detail view (async for daily log) ──
+      async function renderDetailAsync(main) {
+        const c = campaigns.find((x) => x.id === editingId)
+        if (!c) { main.innerHTML = '<p>Kampagne ikke fundet</p>'; return }
+
+        const dailyLog = await loadDailyLog(c.id)
+
+        const pacing = calcPacing(c)
+        const placementCards = ['forside', 'srp', 'vip'].map((key) => {
+          const p = c.placements[key]
+          if (p.budget === 0) return ''
+          const pp = pacing.perPlacement[key] || { expected: 0, delivered: 0, deficit: 0, pct: 0 }
+          const pct = Math.round((p.used / p.budget) * 100)
+          const colors = { forside: 'var(--accent)', srp: 'var(--purple)', vip: 'var(--green)' }
+          const labels = { forside: 'Forside', srp: 'SRP', vip: 'VIP' }
+          return `
+        <div class="detail-placement-card">
+          <div class="dpc-header">
+            <span class="dpc-name"><span class="alloc-dot dot-${key}"></span> ${labels[key]}</span>
+            <span>${pacingBadge(pp.deficit)}</span>
+          </div>
+          <div class="dpc-bar"><div class="dpc-bar-fill" style="width:${pct}%;background:${colors[key]}"></div></div>
+          <div class="dpc-stats"><span>Leveret: <strong>${fmt(p.used)}</strong></span><span>Budget: <strong>${fmt(p.budget)}/md</strong></span></div>
+          <div class="dpc-stats" style="margin-top:6px"><span>Forventet nu: <strong>${fmt(pp.expected)}</strong></span><span style="color:${pp.deficit > 0 ? 'var(--red)' : 'var(--green)'}">${pp.deficit > 0 ? 'Mangler: ' + fmt(pp.deficit) : 'Foran med: ' + fmt(Math.abs(pp.deficit))}</span></div>
+        </div>`
+        }).join('')
+
+        const logRows = dailyLog.map((d) => `
+        <tr>
+          <td>${fmtDate(d.date)}</td>
+          <td>${fmt(d.forside || 0)}</td>
+          <td>${fmt(d.srp || 0)}</td>
+          <td>${fmt(d.vip || 0)}</td>
+          <td style="font-weight:600">${fmt((d.forside || 0) + (d.srp || 0) + (d.vip || 0))}</td>
+        </tr>`).join('')
+
+        main.innerHTML = `
+      <button class="detail-back" onclick="switchView('campaigns')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        Tilbage til kampagner
+      </button>
+      <div class="detail-head animate-in">
+        <div class="detail-info">
+          <h2>${c.customer} ${statusBadge(c.status)}</h2>
+          <div class="detail-meta">
+            <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> ${fmtDate(c.startDate)} – ${fmtDate(c.endDate)}</span>
+            <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> ${fmtK(totalBudget(c))} visn./md</span>
+            ${c.status === 'active' ? `<span>${daysLeft(c.endDate)} dage tilbage</span>` : ''}
+          </div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost" onclick="openEditCampaign('${c.id}')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Rediger
+          </button>
+        </div>
+      </div>
+      ${c.notes ? `<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;margin-bottom:24px;font-size:13px;color:var(--text-muted)" class="animate-in"><strong style="color:var(--text)">Note:</strong> ${c.notes}</div>` : ''}
+      <div class="detail-placements animate-in">${placementCards}</div>
+      <div class="log-section animate-in" style="margin-top:24px">
+        <div class="log-header">Daglig visningslog</div>
+        ${logRows.length > 0 ? `<table class="log-table"><thead><tr><th>Dato</th><th>Forside</th><th>SRP</th><th>VIP</th><th>Total</th></tr></thead><tbody>${logRows}</tbody></table>` : '<div style="padding:40px;text-align:center;color:var(--text-dim);font-size:13px">Ingen visningsdata endnu</div>'}
+      </div>`
+      }
+
+      // ── Stats view ──
+      function renderStats() {
+        const activeCampaigns = campaigns.filter((c) => c.status === 'active')
+        const placementTotals = { forside: { budget: 0, used: 0 }, srp: { budget: 0, used: 0 }, vip: { budget: 0, used: 0 } }
+        activeCampaigns.forEach((c) => {
+          ['forside', 'srp', 'vip'].forEach((k) => { placementTotals[k].budget += c.placements[k].budget; placementTotals[k].used += c.placements[k].used })
+        })
+        const placementRows = ['forside', 'srp', 'vip'].map((k) => {
+          const p = placementTotals[k]
+          const pct = p.budget > 0 ? Math.round((p.used / p.budget) * 100) : 0
+          const labels = { forside: 'Forside', srp: 'SRP (Søgeresultatside)', vip: 'VIP (Annonceside)' }
+          const colors = { forside: 'var(--accent)', srp: 'var(--purple)', vip: 'var(--green)' }
+          return `<div class="stat-card"><div class="stat-label" style="display:flex;align-items:center;gap:6px"><span class="alloc-dot dot-${k}"></span> ${labels[k]}</div><div class="stat-value" style="color:${colors[k]}">${fmtK(p.used)}</div><div style="margin-top:8px"><div class="progress-wrap"><div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${colors[k]}"></div></div><span class="progress-pct">${pct}%</span></div></div><div class="stat-detail">af ${fmtK(p.budget)}/md budget</div></div>`
+        }).join('')
+        const compRows = activeCampaigns.map((c) => {
+          const pacing = calcPacing(c)
+          const pacingColor = pacing.overallPct >= 90 ? 'var(--green)' : pacing.overallPct >= 70 ? 'var(--amber)' : 'var(--red)'
+          return `<tr style="cursor:pointer" onclick="viewDetail('${c.id}')"><td><span class="customer-name">${c.customer}</span></td><td style="font-family:'JetBrains Mono',monospace;font-size:13px">${fmt(totalBudget(c))}/md</td><td style="font-family:'JetBrains Mono',monospace;font-size:13px">${fmt(totalUsed(c))}</td><td><div class="progress-wrap"><div class="progress-bar"><div class="progress-fill" style="width:${Math.min(pacing.overallPct, 100)}%;background:${pacingColor}"></div></div><span class="progress-pct">${pacing.overallPct}%</span></div></td><td style="font-size:13px;color:var(--text-muted)">${daysLeft(c.endDate)}d</td></tr>`
+        }).join('')
+        return `
+      <div class="page-header animate-in"><h1 class="page-title">Statistik <span>Aktive kampagner – pacing</span></h1></div>
+      <div class="stats-row animate-in" style="grid-template-columns:repeat(3,1fr)">${placementRows}</div>
+      <div class="table-wrap animate-in"><div class="table-header"><span class="table-title">Kampagneoversigt – pacing</span></div>
+        <table><thead><tr><th>Kunde</th><th>Budget/md</th><th>Leveret</th><th>Pacing</th><th>Dage</th></tr></thead>
+        <tbody>${compRows.length > 0 ? compRows : '<tr><td colspan="5" style="text-align:center;color:var(--text-dim);padding:40px">Ingen aktive kampagner</td></tr>'}</tbody></table></div>`
+      }
+
+      // ── Placements view ──
+      function renderPlacements() {
+        const placementData = { forside: [], srp: [], vip: [] }
+        campaigns.filter((c) => c.status === 'active').forEach((c) => {
+          ['forside', 'srp', 'vip'].forEach((k) => {
+            if (c.placements[k].budget > 0) placementData[k].push({ customer: c.customer, ...c.placements[k], id: c.id })
+          })
+        })
+        const labels = { forside: 'Forside', srp: 'SRP (Søgeresultatside)', vip: 'VIP (Annonceside)' }
+        const colors = { forside: 'var(--accent)', srp: 'var(--purple)', vip: 'var(--green)' }
+        const sections = ['forside', 'srp', 'vip'].map((k) => {
+          const rows = placementData[k].map((p) => {
+            const pct = Math.round((p.used / p.budget) * 100)
+            return `<tr style="cursor:pointer" onclick="viewDetail('${p.id}')"><td><span class="customer-name">${p.customer}</span></td><td style="font-family:'JetBrains Mono',monospace;font-size:13px">${fmt(p.budget)}</td><td style="font-family:'JetBrains Mono',monospace;font-size:13px">${fmt(p.used)}</td><td><div class="progress-wrap"><div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${colors[k]}"></div></div><span class="progress-pct">${pct}%</span></div></td></tr>`
+          }).join('')
+          const tb = placementData[k].reduce((s, p) => s + p.budget, 0)
+          const tu = placementData[k].reduce((s, p) => s + p.used, 0)
+          return `<div class="table-wrap animate-in" style="margin-bottom:24px"><div class="table-header"><span class="table-title" style="display:flex;align-items:center;gap:8px"><span class="alloc-dot dot-${k}"></span> ${labels[k]} <span style="font-size:12px;color:var(--text-dim);font-weight:400">${fmtK(tu)} / ${fmtK(tb)} visninger</span></span></div><table><thead><tr><th>Kunde</th><th>Budget</th><th>Forbrugt</th><th>Levering</th></tr></thead><tbody>${rows.length > 0 ? rows : '<tr><td colspan="4" style="text-align:center;color:var(--text-dim);padding:30px">Ingen aktive kampagner på denne placering</td></tr>'}</tbody></table></div>`
+        }).join('')
+        return `<div class="page-header animate-in"><h1 class="page-title">Placeringer <span>Fordelt på position</span></h1></div>${sections}`
+      }
+
+      // ── Snippets view ──
+      function renderSnippets() {
+        const baseUrl = SUPABASE_URL.replace('.supabase.co', '') + '.supabase.co/functions/v1'
+        return `
+      <div class="page-header animate-in"><h1 class="page-title">Snippets <span>Integration til Bilhandel</span></h1></div>
+      <div class="log-section animate-in">
+        <div class="log-header">Sådan virker systemet</div>
+        <div style="padding:16px 20px;font-size:13px;color:var(--text-dim);">
+          <p style="margin-bottom:10px;">Indsæt <strong>ét snippet per placering</strong> på Bilhandel. Snippetten fortæller kun, hvilken placering og device der vises på siden. Vores banner‑system vælger selv, hvilke kampagner der skal vises hvor.</p>
+          <ul style="margin-left:18px;margin-bottom:10px;">
+            <li><strong>Forside &amp; VIP</strong>: systemet vælger automatisk én aktiv kampagne ad gangen ud fra periode og resterende visninger.</li>
+            <li><strong>SRP</strong>: alle aktive kampagner med SRP‑visninger vises samtidigt i SRP‑modulet.</li>
+          </ul>
+          <p style="font-size:12px;color:var(--text-dim);">Snippetten peger på <code>bh-banner.js</code>, som loader den rette kampagne fra vores backend.</p>
+        </div>
+      </div>
+      <div class="log-section animate-in" style="margin-top:24px">
+        <div class="log-header">Snippets pr. placering</div>
+        <table class="log-table"><thead><tr><th>Placering</th><th>Snippet</th></tr></thead><tbody>
+          ${[
+            ['Forside – desktop', 'forside', 'desktop'],
+            ['Forside – mobil', 'forside', 'mobile'],
+            ['SRP', 'srp', 'all'],
+            ['VIP – desktop', 'vip', 'desktop'],
+            ['VIP – mobil', 'vip', 'mobile'],
+          ].map(([label, placement, device]) => `<tr><td>${label}</td><td><textarea style="width:100%;min-height:80px;background:var(--surface-2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px;padding:8px;" readonly><ins class="bh-banner"
+  data-placement="${placement}"
+  data-device="${device}"></ins>
+<script async src="${baseUrl}/serve-ad-script"><\/script></textarea></td></tr>`).join('')}
+        </tbody></table>
+      </div>`
+      }
+
+      // ── Modal ──
+      function openModal(html) {
+        document.getElementById('modalContent').innerHTML = html
+        document.getElementById('modalOverlay').classList.add('open')
+      }
+      function closeModal() { document.getElementById('modalOverlay').classList.remove('open') }
+      document.getElementById('modalOverlay').addEventListener('click', (e) => { if (e.target === e.currentTarget) closeModal() })
+
+      function openNewCampaign() {
+        editingId = null
+        openCampaignModal({
+          customer: '', status: 'active', startDate: '', endDate: '',
+          placements: { forside: { budget: 0, used: 0 }, srp: { budget: 0, used: 0 }, vip: { budget: 0, used: 0 } },
+          creatives: {}, notes: '',
+        })
+      }
+
+      function openEditCampaign(id) {
+        const c = campaigns.find((x) => x.id === id)
+        if (!c) return
+        editingId = id
+        openCampaignModal(c)
+      }
+
+      function getCreative(c, placement, device) {
+        return c.creatives[placement + '_' + device] || {}
+      }
+
+      function openCampaignModal(c) {
+        const isNew = !editingId
+        const cr = (placement, device) => getCreative(c, placement, device)
+        const imgPreview = (cr) => cr.image_url ? `<div style="margin-top:6px"><img src="${cr.image_url}" style="max-width:200px;max-height:60px;border-radius:4px;border:1px solid var(--border)"></div>` : ''
+
+        openModal(`
+      <div class="modal-head">
+        <span class="modal-title">${isNew ? 'Ny kampagne' : 'Rediger kampagne'}</span>
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="form-group form-full">
+            <label class="form-label">Kundenavn</label>
+            <input class="form-input" id="fCustomer" value="${c.customer}" placeholder="F.eks. Greenbow">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Startdato</label>
+            <input class="form-input" type="date" id="fStart" value="${c.startDate}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Slutdato</label>
+            <input class="form-input" type="date" id="fEnd" value="${c.endDate}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Status</label>
+            <select class="form-select" id="fStatus">
+              <option value="active" ${c.status === 'active' ? 'selected' : ''}>Aktiv</option>
+              <option value="scheduled" ${c.status === 'scheduled' ? 'selected' : ''}>Planlagt</option>
+              <option value="paused" ${c.status === 'paused' ? 'selected' : ''}>Pauset</option>
+              <option value="ended" ${c.status === 'ended' ? 'selected' : ''}>Afsluttet</option>
+            </select>
+          </div>
+          <div class="form-group"><label class="form-label">&nbsp;</label></div>
+          <div class="form-group form-full">
+            <label class="form-label">Noter</label>
+            <input class="form-input" id="fNotes" value="${c.notes || ''}" placeholder="Interne noter om kampagnen...">
+          </div>
+        </div>
+
+        <div class="allocation-section">
+          <div class="allocation-title">Visningsbudget pr. placering (pr. måned)</div>
+          <div class="allocation-row"><span class="alloc-label"><span class="alloc-dot dot-forside"></span> Forside</span><input class="alloc-input" type="text" id="fForside" value="${c.placements.forside.budget || ''}" placeholder="0" oninput="updateTotal()"><span class="alloc-unit">visn./md</span></div>
+          <div class="allocation-row"><span class="alloc-label"><span class="alloc-dot dot-srp"></span> SRP</span><input class="alloc-input" type="text" id="fSrp" value="${c.placements.srp.budget || ''}" placeholder="0" oninput="updateTotal()"><span class="alloc-unit">visn./md</span></div>
+          <div class="allocation-row"><span class="alloc-label"><span class="alloc-dot dot-vip"></span> VIP</span><input class="alloc-input" type="text" id="fVip" value="${c.placements.vip.budget || ''}" placeholder="0" oninput="updateTotal()"><span class="alloc-unit">visn./md</span></div>
+          <div class="alloc-total"><span class="alloc-total-label">Total visninger/md</span><span class="alloc-total-value" id="allocTotal">0</span></div>
+          <div class="form-hint" style="margin-top:8px">Tip: For Greenbow-modellen, sæt forside+SRP til 400k hver og VIP til 350k</div>
+        </div>
+
+        <div class="upload-area">
+          <div class="allocation-title">Banner-filer pr. placering</div>
+          <div class="form-grid">
+            <div class="form-group form-full"><div class="form-label">Forside – desktop</div><div class="form-hint">Upload billede og angiv click‑URL</div></div>
+            <div class="form-group"><label class="form-label">Grafik</label><input class="form-input" type="file" id="fFrontDesktopFile" accept="image/*">${imgPreview(cr('forside','desktop'))}</div>
+            <div class="form-group form-full"><label class="form-label">Link</label><input class="form-input" id="fFrontDesktopLink" value="${cr('forside','desktop').click_url || ''}" placeholder="https://..."></div>
+
+            <div class="form-group form-full" style="margin-top:16px"><div class="form-label">Forside – mobil</div><div class="form-hint">Upload billede og angiv click‑URL</div></div>
+            <div class="form-group"><label class="form-label">Grafik</label><input class="form-input" type="file" id="fFrontMobileFile" accept="image/*">${imgPreview(cr('forside','mobile'))}</div>
+            <div class="form-group form-full"><label class="form-label">Link</label><input class="form-input" id="fFrontMobileLink" value="${cr('forside','mobile').click_url || ''}" placeholder="https://..."></div>
+
+            <div class="form-group form-full" style="margin-top:16px"><div class="form-label">SRP</div><div class="form-hint">Upload logo og angiv tekstindhold + click‑URL</div></div>
+            <div class="form-group"><label class="form-label">Logo</label><input class="form-input" type="file" id="fSrpLogoFile" accept="image/svg+xml,image/png">${imgPreview(cr('srp','all'))}</div>
+            <div class="form-group form-full"><label class="form-label">Overskrift</label><input class="form-input" id="fSrpHeadline" value="${cr('srp','all').headline || ''}" placeholder="Har du styr på din registreringsattest?"></div>
+            <div class="form-group form-full"><label class="form-label">Tekst</label><input class="form-input" id="fSrpText" value="${cr('srp','all').body_text || ''}" placeholder="Uddybende brødtekst til SRP‑banneret"></div>
+            <div class="form-group form-full"><label class="form-label">Link</label><input class="form-input" id="fSrpLink" value="${cr('srp','all').click_url || ''}" placeholder="https://..."></div>
+
+            <div class="form-group form-full" style="margin-top:16px"><div class="form-label">VIP – desktop</div><div class="form-hint">Upload billede og angiv click‑URL</div></div>
+            <div class="form-group"><label class="form-label">Grafik</label><input class="form-input" type="file" id="fVipDesktopFile" accept="image/*">${imgPreview(cr('vip','desktop'))}</div>
+            <div class="form-group form-full"><label class="form-label">Link</label><input class="form-input" id="fVipDesktopLink" value="${cr('vip','desktop').click_url || ''}" placeholder="https://..."></div>
+
+            <div class="form-group form-full" style="margin-top:16px"><div class="form-label">VIP – mobil</div><div class="form-hint">Upload billede og angiv click‑URL</div></div>
+            <div class="form-group"><label class="form-label">Grafik</label><input class="form-input" type="file" id="fVipMobileFile" accept="image/*">${imgPreview(cr('vip','mobile'))}</div>
+            <div class="form-group form-full"><label class="form-label">Link</label><input class="form-input" id="fVipMobileLink" value="${cr('vip','mobile').click_url || ''}" placeholder="https://..."></div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        ${!isNew ? '<button class="btn btn-danger btn-sm" onclick="deleteCampaign(\'' + editingId + '\');closeModal()">Slet</button>' : ''}
+        <div style="flex:1"></div>
+        <button class="btn btn-ghost" onclick="closeModal()">Annuller</button>
+        <button class="btn btn-primary" id="btnSave" onclick="saveCampaign()">
+          ${isNew ? 'Opret kampagne' : 'Gem ændringer'}
+        </button>
+      </div>`)
+        updateTotal()
+      }
+
+      function updateTotal() {
+        const v = (id) => document.getElementById(id).value.replace(/\D/g, '')
+        const total = (parseInt(v('fForside')) || 0) + (parseInt(v('fSrp')) || 0) + (parseInt(v('fVip')) || 0)
+        document.getElementById('allocTotal').textContent = fmt(total)
+      }
+
+      // ── Upload helper ──
+      async function uploadFile(file, campaignId, placement, device) {
+        const ext = file.name.split('.').pop()
+        const path = `${campaignId}/${placement}-${device}.${ext}`
+        // Remove old file first (ignore errors)
+        await sb.storage.from('banners').remove([path])
+        const { error } = await sb.storage.from('banners').upload(path, file, { upsert: true })
+        if (error) { console.error('Upload error:', error); return null }
+        const { data } = sb.storage.from('banners').getPublicUrl(path)
+        return data.publicUrl
+      }
+
+      // ── Save campaign ──
+      async function saveCampaign() {
+        const v = (id) => document.getElementById(id).value
+        const n = (id) => parseInt(v(id).replace(/\D/g, '')) || 0
+
+        const customer = v('fCustomer').trim()
+        if (!customer) { showToast('Angiv venligst et kundenavn'); return }
+        if (!v('fStart') || !v('fEnd')) { showToast('Angiv venligst start- og slutdato'); return }
+
+        const btn = document.getElementById('btnSave')
+        btn.disabled = true; btn.textContent = 'Gemmer...'
+
+        try {
+          // 1. Upsert campaign
+          const campaignData = {
+            customer,
+            status: v('fStatus'),
+            start_date: v('fStart'),
+            end_date: v('fEnd'),
+            notes: v('fNotes') || null,
+            updated_at: new Date().toISOString(),
+          }
+
+          let campaignId = editingId
+          if (editingId) {
+            const { error } = await sb.from('campaigns').update(campaignData).eq('id', editingId)
+            if (error) throw error
+          } else {
+            const { data, error } = await sb.from('campaigns').insert(campaignData).select('id').single()
+            if (error) throw error
+            campaignId = data.id
+          }
+
+          // 2. Upsert placements
+          const placementEntries = [
+            { placement: 'forside', budget: n('fForside') },
+            { placement: 'srp', budget: n('fSrp') },
+            { placement: 'vip', budget: n('fVip') },
+          ]
+          for (const pe of placementEntries) {
+            await sb.from('campaign_placements').upsert({
+              campaign_id: campaignId,
+              placement: pe.placement,
+              budget: pe.budget,
+            }, { onConflict: 'campaign_id,placement' })
+          }
+
+          // 3. Upload files and upsert creatives
+          const creativeVariants = [
+            { placement: 'forside', device: 'desktop', fileId: 'fFrontDesktopFile', linkId: 'fFrontDesktopLink' },
+            { placement: 'forside', device: 'mobile', fileId: 'fFrontMobileFile', linkId: 'fFrontMobileLink' },
+            { placement: 'srp', device: 'all', fileId: 'fSrpLogoFile', linkId: 'fSrpLink' },
+            { placement: 'vip', device: 'desktop', fileId: 'fVipDesktopFile', linkId: 'fVipDesktopLink' },
+            { placement: 'vip', device: 'mobile', fileId: 'fVipMobileFile', linkId: 'fVipMobileLink' },
+          ]
+
+          for (const cv of creativeVariants) {
+            const fileInput = document.getElementById(cv.fileId)
+            const file = fileInput && fileInput.files[0]
+            let imageUrl = null
+
+            if (file) {
+              imageUrl = await uploadFile(file, campaignId, cv.placement, cv.device)
+            }
+
+            const creativeData = {
+              campaign_id: campaignId,
+              placement: cv.placement,
+              device: cv.device,
+              click_url: v(cv.linkId).trim() || null,
+            }
+
+            if (imageUrl) creativeData.image_url = imageUrl
+
+            // Add SRP-specific fields
+            if (cv.placement === 'srp') {
+              creativeData.headline = v('fSrpHeadline').trim() || null
+              creativeData.body_text = v('fSrpText').trim() || null
+            }
+
+            await sb.from('campaign_creatives').upsert(creativeData, { onConflict: 'campaign_id,placement,device' })
+          }
+
+          showToast(editingId ? 'Kampagne opdateret' : 'Kampagne oprettet', 'success')
+          closeModal()
+          await loadCampaigns()
+          render()
+        } catch (err) {
+          console.error(err)
+          showToast('Fejl: ' + (err.message || 'Ukendt fejl'))
+          btn.disabled = false; btn.textContent = editingId ? 'Gem ændringer' : 'Opret kampagne'
+        }
+      }
+
+      // ── Delete campaign ──
+      async function deleteCampaign(id) {
+        if (!confirm('Er du sikker på, at du vil slette denne kampagne?')) return
+        const { error } = await sb.from('campaigns').delete().eq('id', id)
+        if (error) { showToast('Fejl ved sletning'); console.error(error); return }
+        // Also clean up storage
+        const { data: files } = await sb.storage.from('banners').list(id)
+        if (files && files.length > 0) {
+          await sb.storage.from('banners').remove(files.map(f => `${id}/${f.name}`))
+        }
+        showToast('Kampagne slettet')
+        await loadCampaigns()
+        if (currentView === 'detail') switchView('campaigns')
+        else render()
+      }
+
+      // ── Init ──
+      ;(async () => {
+        document.getElementById('mainContent').innerHTML = '<div style="text-align:center;padding:60px;color:var(--text-dim)">Indlæser kampagner...</div>'
+        await loadCampaigns()
+        render()
+      })()
+    </script>
+  </body>
+</html>
