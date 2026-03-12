@@ -1069,13 +1069,26 @@
           .select('*, campaign_placements(*), campaign_creatives(*)')
           .order('created_at', { ascending: false })
         if (error) { console.error(error); showToast('Fejl ved indlæsning'); return }
-        campaigns = (data || []).map(adaptCampaign)
+        // Load click totals for current month
+        const today = new Date().toISOString().split('T')[0]
+        const monthStart = today.substring(0, 7) + '-01'
+        const { data: clickData } = await sb
+          .from('daily_clicks')
+          .select('campaign_id, placement, click_count')
+          .gte('stat_date', monthStart).lte('stat_date', today)
+        const clickMap = {}
+        for (const c of (clickData || [])) {
+          const key = c.campaign_id + '_' + c.placement
+          clickMap[key] = (clickMap[key] || 0) + c.click_count
+        }
+        campaigns = (data || []).map(row => adaptCampaign(row, clickMap))
       }
 
-      function adaptCampaign(row) {
-        const placements = { forside: { budget: 0, used: 0 }, srp: { budget: 0, used: 0 }, vip: { budget: 0, used: 0 } }
+      function adaptCampaign(row, clickMap = {}) {
+        const placements = { forside: { budget: 0, used: 0, clicks: 0 }, srp: { budget: 0, used: 0, clicks: 0 }, vip: { budget: 0, used: 0, clicks: 0 } }
         for (const cp of (row.campaign_placements || [])) {
-          placements[cp.placement] = { budget: cp.budget, used: cp.used }
+          const clicks = clickMap[row.id + '_' + cp.placement] || 0
+          placements[cp.placement] = { budget: cp.budget, used: cp.used, clicks }
         }
         const creatives = {}
         for (const cr of (row.campaign_creatives || [])) {
@@ -1112,6 +1125,8 @@
       }
 
       // ── Helpers ──
+      function totalClicks(c) { return Object.values(c.placements).reduce((s, p) => s + p.clicks, 0) }
+      function ctr(impressions, clicks) { return impressions > 0 ? ((clicks / impressions) * 100).toFixed(2) : '0.00' }
       function fmt(n) { return new Intl.NumberFormat('da-DK').format(n) }
       function fmtK(n) {
         if (n >= 1000000) return (n / 1000000).toFixed(1).replace('.0', '') + 'M'
@@ -1345,28 +1360,30 @@
       // ── Stats view ──
       function renderStats() {
         const activeCampaigns = campaigns.filter((c) => c.status === 'active')
-        const placementTotals = { forside: { budget: 0, used: 0 }, srp: { budget: 0, used: 0 }, vip: { budget: 0, used: 0 } }
+        const placementTotals = { forside: { budget: 0, used: 0, clicks: 0 }, srp: { budget: 0, used: 0, clicks: 0 }, vip: { budget: 0, used: 0, clicks: 0 } }
         activeCampaigns.forEach((c) => {
-          ['forside', 'srp', 'vip'].forEach((k) => { placementTotals[k].budget += c.placements[k].budget; placementTotals[k].used += c.placements[k].used })
+          ['forside', 'srp', 'vip'].forEach((k) => { placementTotals[k].budget += c.placements[k].budget; placementTotals[k].used += c.placements[k].used; placementTotals[k].clicks += c.placements[k].clicks })
         })
         const placementRows = ['forside', 'srp', 'vip'].map((k) => {
           const p = placementTotals[k]
           const pct = p.budget > 0 ? Math.round((p.used / p.budget) * 100) : 0
           const labels = { forside: 'Forside', srp: 'SRP (Søgeresultatside)', vip: 'VIP (Annonceside)' }
           const colors = { forside: 'var(--accent)', srp: 'var(--purple)', vip: 'var(--green)' }
-          return `<div class="stat-card"><div class="stat-label" style="display:flex;align-items:center;gap:6px"><span class="alloc-dot dot-${k}"></span> ${labels[k]}</div><div class="stat-value" style="color:${colors[k]}">${fmtK(p.used)}</div><div style="margin-top:8px"><div class="progress-wrap"><div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${colors[k]}"></div></div><span class="progress-pct">${pct}%</span></div></div><div class="stat-detail">af ${fmtK(p.budget)}/md budget</div></div>`
+          return `<div class="stat-card"><div class="stat-label" style="display:flex;align-items:center;gap:6px"><span class="alloc-dot dot-${k}"></span> ${labels[k]}</div><div class="stat-value" style="color:${colors[k]}">${fmtK(p.used)}</div><div style="margin-top:8px"><div class="progress-wrap"><div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${colors[k]}"></div></div><span class="progress-pct">${pct}%</span></div></div><div class="stat-detail">af ${fmtK(p.budget)}/md budget</div><div style="margin-top:10px;display:flex;gap:12px;font-size:12px;color:var(--text-muted)"><span>Klik: <strong style="color:var(--text)">${fmtK(p.clicks)}</strong></span><span>CTR: <strong style="color:var(--text)">${ctr(p.used, p.clicks)}%</strong></span></div></div>`
         }).join('')
         const compRows = activeCampaigns.map((c) => {
           const pacing = calcPacing(c)
           const pacingColor = pacing.overallPct >= 90 ? 'var(--green)' : pacing.overallPct >= 70 ? 'var(--amber)' : 'var(--red)'
-          return `<tr style="cursor:pointer" onclick="viewDetail('${c.id}')"><td><span class="customer-name">${c.customer}</span></td><td style="font-family:'JetBrains Mono',monospace;font-size:13px">${fmt(totalBudget(c))}/md</td><td style="font-family:'JetBrains Mono',monospace;font-size:13px">${fmt(totalUsed(c))}</td><td><div class="progress-wrap"><div class="progress-bar"><div class="progress-fill" style="width:${Math.min(pacing.overallPct, 100)}%;background:${pacingColor}"></div></div><span class="progress-pct">${pacing.overallPct}%</span></div></td><td style="font-size:13px;color:var(--text-muted)">${daysLeft(c.endDate)}d</td></tr>`
+          const cl = totalClicks(c)
+          const ct = ctr(totalUsed(c), cl)
+          return `<tr style="cursor:pointer" onclick="viewDetail('${c.id}')"><td><span class="customer-name">${c.customer}</span></td><td style="font-family:'JetBrains Mono',monospace;font-size:13px">${fmt(totalBudget(c))}/md</td><td style="font-family:'JetBrains Mono',monospace;font-size:13px">${fmt(totalUsed(c))}</td><td style="font-family:'JetBrains Mono',monospace;font-size:13px">${fmt(cl)}</td><td style="font-family:'JetBrains Mono',monospace;font-size:13px">${ct}%</td><td><div class="progress-wrap"><div class="progress-bar"><div class="progress-fill" style="width:${Math.min(pacing.overallPct, 100)}%;background:${pacingColor}"></div></div><span class="progress-pct">${pacing.overallPct}%</span></div></td><td style="font-size:13px;color:var(--text-muted)">${daysLeft(c.endDate)}d</td></tr>`
         }).join('')
         return `
       <div class="page-header animate-in"><h1 class="page-title">Statistik <span>Aktive kampagner – pacing</span></h1></div>
       <div class="stats-row animate-in" style="grid-template-columns:repeat(3,1fr)">${placementRows}</div>
       <div class="table-wrap animate-in"><div class="table-header"><span class="table-title">Kampagneoversigt – pacing</span></div>
-        <table><thead><tr><th>Kunde</th><th>Budget/md</th><th>Leveret</th><th>Pacing</th><th>Dage</th></tr></thead>
-        <tbody>${compRows.length > 0 ? compRows : '<tr><td colspan="5" style="text-align:center;color:var(--text-dim);padding:40px">Ingen aktive kampagner</td></tr>'}</tbody></table></div>`
+        <table><thead><tr><th>Kunde</th><th>Budget/md</th><th>Visninger</th><th>Klik</th><th>CTR</th><th>Pacing</th><th>Dage</th></tr></thead>
+        <tbody>${compRows.length > 0 ? compRows : '<tr><td colspan="7" style="text-align:center;color:var(--text-dim);padding:40px">Ingen aktive kampagner</td></tr>'}</tbody></table></div>`
       }
 
       // ── Placements view ──
@@ -1382,11 +1399,12 @@
         const sections = ['forside', 'srp', 'vip'].map((k) => {
           const rows = placementData[k].map((p) => {
             const pct = Math.round((p.used / p.budget) * 100)
-            return `<tr style="cursor:pointer" onclick="viewDetail('${p.id}')"><td><span class="customer-name">${p.customer}</span></td><td style="font-family:'JetBrains Mono',monospace;font-size:13px">${fmt(p.budget)}</td><td style="font-family:'JetBrains Mono',monospace;font-size:13px">${fmt(p.used)}</td><td><div class="progress-wrap"><div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${colors[k]}"></div></div><span class="progress-pct">${pct}%</span></div></td></tr>`
+            return `<tr style="cursor:pointer" onclick="viewDetail('${p.id}')"><td><span class="customer-name">${p.customer}</span></td><td style="font-family:'JetBrains Mono',monospace;font-size:13px">${fmt(p.budget)}</td><td style="font-family:'JetBrains Mono',monospace;font-size:13px">${fmt(p.used)}</td><td style="font-family:'JetBrains Mono',monospace;font-size:13px">${fmt(p.clicks)}</td><td style="font-family:'JetBrains Mono',monospace;font-size:13px">${ctr(p.used, p.clicks)}%</td><td><div class="progress-wrap"><div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${colors[k]}"></div></div><span class="progress-pct">${pct}%</span></div></td></tr>`
           }).join('')
           const tb = placementData[k].reduce((s, p) => s + p.budget, 0)
           const tu = placementData[k].reduce((s, p) => s + p.used, 0)
-          return `<div class="table-wrap animate-in" style="margin-bottom:24px"><div class="table-header"><span class="table-title" style="display:flex;align-items:center;gap:8px"><span class="alloc-dot dot-${k}"></span> ${labels[k]} <span style="font-size:12px;color:var(--text-dim);font-weight:400">${fmtK(tu)} / ${fmtK(tb)} visninger</span></span></div><table><thead><tr><th>Kunde</th><th>Budget</th><th>Forbrugt</th><th>Levering</th></tr></thead><tbody>${rows.length > 0 ? rows : '<tr><td colspan="4" style="text-align:center;color:var(--text-dim);padding:30px">Ingen aktive kampagner på denne placering</td></tr>'}</tbody></table></div>`
+          const tc = placementData[k].reduce((s, p) => s + p.clicks, 0)
+          return `<div class="table-wrap animate-in" style="margin-bottom:24px"><div class="table-header"><span class="table-title" style="display:flex;align-items:center;gap:8px"><span class="alloc-dot dot-${k}"></span> ${labels[k]} <span style="font-size:12px;color:var(--text-dim);font-weight:400">${fmtK(tu)} visninger · ${fmtK(tc)} klik · ${ctr(tu, tc)}% CTR</span></span></div><table><thead><tr><th>Kunde</th><th>Budget</th><th>Visninger</th><th>Klik</th><th>CTR</th><th>Levering</th></tr></thead><tbody>${rows.length > 0 ? rows : '<tr><td colspan="6" style="text-align:center;color:var(--text-dim);padding:30px">Ingen aktive kampagner på denne placering</td></tr>'}</tbody></table></div>`
         }).join('')
         return `<div class="page-header animate-in"><h1 class="page-title">Placeringer <span>Fordelt på position</span></h1></div>${sections}`
       }
